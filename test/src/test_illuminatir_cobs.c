@@ -4,23 +4,23 @@
 #include "common.h"
 
 
-static uint8_t         channels[256] = {0};
-static unsigned        setChannel_called = 0;
+static uint8_t  channels[256] = {0};
+static unsigned setChannel_called = 0;
 
-static const char *    lastConfigKey = NULL;
-static uint8_t         lastConfigKey_size = 0;
-static const uint8_t * lastConfigValues = NULL;
-static uint8_t         lastConfigValues_size = 0;
-static unsigned        setConfig_called = 0;
+static char     lastConfigKey[ILLUMINATIR_MAX_PACKET_SIZE];
+static uint8_t  lastConfigKey_size = 0;
+static uint8_t  lastConfigValues[ILLUMINATIR_MAX_PACKET_SIZE];
+static uint8_t  lastConfigValues_size = 0;
+static unsigned setConfig_called = 0;
 
 
 void setUp(void) {
 	memset( channels, 0, sizeof(channels) );
 	setChannel_called = 0;
 
-	lastConfigKey         = NULL;
+	memset( lastConfigKey, 0, sizeof(lastConfigKey) );
 	lastConfigKey_size    = 0;
-	lastConfigValues      = NULL;
+	memset( lastConfigValues, 0, sizeof(lastConfigValues) );
 	lastConfigValues_size = 0;
 	setConfig_called      = 0;
 }
@@ -40,9 +40,9 @@ void setChannel( uint8_t channel, uint8_t value )
 
 void setConfig( const char * key, uint8_t key_size, const uint8_t * values, uint8_t values_size )
 {
-	lastConfigKey = key;
+	memcpy( lastConfigKey, key, key_size );
 	lastConfigKey_size = key_size;
-	lastConfigValues = values;
+	memcpy( lastConfigValues, values, values_size );
 	lastConfigValues_size = values_size;
 	setConfig_called++;
 }
@@ -173,10 +173,7 @@ void test_illuminatir_cobs_decode_encode_examplesFromWikipedia( void )
 
 void test_illuminatir_cobs_build_parse_offsetValues( void )
 {
-	uint8_t packet[] = {0x0f,0x04,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,0x00};
-	packet[sizeof(packet)-1] = illuminatir_crc8( packet, sizeof(packet)-1, ILLUMINATIR_CRC8_INITIAL_SEED );
-	
-	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(sizeof(packet))];
+	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_MAX_PACKET_SIZE)];
 	uint8_t cobsPacket_size = sizeof(cobsPacket);
 	const uint8_t values[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_cobs_build_offsetArray( cobsPacket, &cobsPacket_size, 4, values, sizeof(values) ) );
@@ -205,21 +202,18 @@ void test_illuminatir_cobs_build_parse_offsetValues( void )
 
 void test_illuminatir_cobs_build_parse_config( void )
 {
-	uint8_t packet[] = {0x2f,'I','l','l','u','m','i','n','a','t','I','R',0,1,2,3,4,5,0x00};
-	packet[sizeof(packet)-1] = illuminatir_crc8( packet, sizeof(packet)-1, ILLUMINATIR_CRC8_INITIAL_SEED );
-
-	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(sizeof(packet))];
+	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_MAX_PACKET_SIZE)];
 	uint8_t cobsPacket_size = sizeof(cobsPacket);
 	const char key[] = "IlluminatIR";
 	const uint8_t values[] = {1,2,3,4,5};
 	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_cobs_build_config( cobsPacket, &cobsPacket_size, key, sizeof(key)-1, values, sizeof(values) ) );
 	TEST_ASSERT_LESS_OR_EQUAL_UINT( sizeof(cobsPacket), cobsPacket_size );
 
-	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_parse( packet, sizeof(packet), setChannel, setConfig ) );
+	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_cobs_parse( cobsPacket, cobsPacket_size, setChannel, setConfig ) );
 	TEST_ASSERT_EQUAL_UINT( 1, setConfig_called );
 	TEST_ASSERT_NOT_NULL( lastConfigKey );
 	TEST_ASSERT_NOT_NULL( lastConfigValues );
-	TEST_ASSERT_EQUAL_UINT( 11, lastConfigKey_size );
+	TEST_ASSERT_EQUAL_UINT( sizeof(key)-1, lastConfigKey_size );
 	TEST_ASSERT_EQUAL_STRING( key, lastConfigKey );
 	TEST_ASSERT_EQUAL_UINT( 5, lastConfigValues_size );
 	TEST_ASSERT_EQUAL_UINT8( 1, lastConfigValues[0] );
