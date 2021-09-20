@@ -76,7 +76,7 @@ illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_si
 	}
 	
 	switch( format ) {
-		case 0: { // Offset + Values
+		case 0: { // OffsetArray - offset + values
 			if( !setChannelFunc ) {
 				return ILLUMINATIR_ERROR_NONE;
 			}
@@ -87,7 +87,7 @@ illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_si
 			}
 			return ILLUMINATIR_ERROR_NONE;
 		}
-		case 1: { // Channel:Value pairs
+		case 1: { // ChannelValuePairs
 			if( !setChannelFunc ) {
 				return ILLUMINATIR_ERROR_NONE;
 			}
@@ -105,18 +105,18 @@ illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_si
 			}
 			return ILLUMINATIR_ERROR_NONE;
 		}
-		case 2: { // Configuration Key:Value(s) pair
+		case 2: { // Config - key/value pair
 			if( !setConfigFunc ) {
 				return ILLUMINATIR_ERROR_NONE;
 			}
 			const char * key = (const char *)payload;
-			uint8_t key_size = strnlen( key, payload_size );
-			uint8_t values_size = payload_size - key_size;
+			uint8_t key_len = strnlen( key, payload_size );
+			uint8_t values_size = payload_size - key_len;
 			if( values_size > 0 ) {
 				values_size--;
 			}
 			const uint8_t * values = payload + payload_size - values_size;
-			setConfigFunc( key, key_size, values, values_size );
+			setConfigFunc( key, key_len, values, values_size );
 			return ILLUMINATIR_ERROR_NONE;
 		}
 		default: {
@@ -186,5 +186,3 @@ illuminatir_error_t illuminatir_build_config( uint8_t * packet, uint8_t * packet
 	*p++ = illuminatir_crc8( packet, (*packet_size)-1, ILLUMINATIR_CRC8_INITIAL_SEED );
 	return ILLUMINATIR_ERROR_NONE;
 }
-
-

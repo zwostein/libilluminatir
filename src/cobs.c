@@ -7,7 +7,6 @@
 
 // Based on https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing
 
-
 size_t illuminatir_cobs_encode( uint8_t * dst, size_t dst_size, const uint8_t * src, size_t src_size )
 {
 	if( !src || !dst ||
@@ -33,7 +32,6 @@ size_t illuminatir_cobs_encode( uint8_t * dst, size_t dst_size, const uint8_t * 
 	*codep = code; // Write final code value
 	return (size_t)(encode - dst);
 }
-
 
 size_t illuminatir_cobs_decode( uint8_t * dst, size_t dst_size, const uint8_t * src, size_t src_size )
 {
