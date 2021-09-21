@@ -7,9 +7,9 @@
 static uint8_t  channels[256] = {0};
 static unsigned setChannel_called = 0;
 
-static char     lastConfigKey[ILLUMINATIR_MAX_PACKET_SIZE];
+static char     lastConfigKey[ILLUMINATIR_CONFIG_KEY_MAXLEN];
 static uint8_t  lastConfigKey_size = 0;
-static uint8_t  lastConfigValues[ILLUMINATIR_MAX_PACKET_SIZE];
+static uint8_t  lastConfigValues[ILLUMINATIR_CONFIG_VALUES_MAXSIZE];
 static uint8_t  lastConfigValues_size = 0;
 static unsigned setConfig_called = 0;
 
@@ -173,7 +173,7 @@ void test_illuminatir_cobs_decode_encode_examplesFromWikipedia( void )
 
 void test_illuminatir_cobs_build_parse_offsetValues( void )
 {
-	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_MAX_PACKET_SIZE)];
+	uint8_t cobsPacket[ILLUMINATIR_COBS_PACKET_MAXSIZE];
 	uint8_t cobsPacket_size = sizeof(cobsPacket);
 	const uint8_t values[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
 	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_cobs_build_offsetArray( cobsPacket, &cobsPacket_size, 4, values, sizeof(values) ) );
@@ -202,7 +202,7 @@ void test_illuminatir_cobs_build_parse_offsetValues( void )
 
 void test_illuminatir_cobs_build_parse_config( void )
 {
-	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_MAX_PACKET_SIZE)];
+	uint8_t cobsPacket[ILLUMINATIR_COBS_PACKET_MAXSIZE];
 	uint8_t cobsPacket_size = sizeof(cobsPacket);
 	const char key[] = "IlluminatIR";
 	const uint8_t values[] = {1,2,3,4,5};

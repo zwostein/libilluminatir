@@ -167,7 +167,7 @@ void test_illuminatir_parse_channelValuePairs_maximumSize( void )
 }
 
 
-void test_illuminatir_parse_config_minimumSize( void )
+void test_illuminatir_parse_config_noValues_minimumSize( void )
 {
 	uint8_t packet[] = {0x20,'X',0,0x00};
 	packet[sizeof(packet)-1] = illuminatir_crc8( packet, sizeof(packet)-1, ILLUMINATIR_CRC8_INITIAL_SEED );
@@ -178,6 +178,20 @@ void test_illuminatir_parse_config_minimumSize( void )
 	TEST_ASSERT_EQUAL_UINT( 1, lastConfigKey_len );
 	TEST_ASSERT_EQUAL_STRING_LEN( "X", lastConfigKey, lastConfigKey_len );
 	TEST_ASSERT_EQUAL_UINT( 0, lastConfigValues_size );
+}
+
+
+void test_illuminatir_parse_config_noKey_minimumSize( void )
+{
+	uint8_t packet[] = {0x20,0,1,0x00};
+	packet[sizeof(packet)-1] = illuminatir_crc8( packet, sizeof(packet)-1, ILLUMINATIR_CRC8_INITIAL_SEED );
+	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_parse( packet, sizeof(packet), setChannel, setConfig ) );
+	TEST_ASSERT_EQUAL_UINT( 1, setConfig_called );
+	TEST_ASSERT_NOT_NULL( lastConfigKey );
+	TEST_ASSERT_NOT_NULL( lastConfigValues );
+	TEST_ASSERT_EQUAL_UINT( 0, lastConfigKey_len );
+	TEST_ASSERT_EQUAL_UINT( 1, lastConfigValues_size );
+	TEST_ASSERT_EQUAL_UINT8( 1, lastConfigValues[0] );
 }
 
 
@@ -225,7 +239,8 @@ int main( void )
 	RUN_TEST(test_illuminatir_parse_offsetArray_offset_maximumSize);
 	RUN_TEST(test_illuminatir_parse_channelValuePairs_minimumSize);
 	RUN_TEST(test_illuminatir_parse_channelValuePairs_maximumSize);
-	RUN_TEST(test_illuminatir_parse_config_minimumSize);
+	RUN_TEST(test_illuminatir_parse_config_noValues_minimumSize);
+	RUN_TEST(test_illuminatir_parse_config_noKey_minimumSize);
 	RUN_TEST(test_illuminatir_parse_config_maximumSize);
 	RUN_TEST(test_illuminatir_parse_config_noKeyDelimiter_maximumSize);
 	return UNITY_END();

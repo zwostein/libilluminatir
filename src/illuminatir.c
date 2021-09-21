@@ -51,7 +51,7 @@ illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_si
 	if( !packet ) {
 		return ILLUMINATIR_ERROR_NULL_POINTER;
 	}
-	if( packet_size < ILLUMINATIR_MIN_PACKET_SIZE ) {
+	if( packet_size < ILLUMINATIR_PACKET_MINSIZE ) {
 		return ILLUMINATIR_ERROR_PACKET_TOO_SHORT;
 	}
 	/*
@@ -132,10 +132,10 @@ illuminatir_error_t illuminatir_build_offsetArray( uint8_t * packet, uint8_t * p
 	if( !packet_size ) {
 		return ILLUMINATIR_ERROR_NULL_POINTER;
 	}
-	if( values_size < ILLUMINATIR_OFFSETARRAY_MIN_VALUES ) {
+	if( values_size < ILLUMINATIR_OFFSETARRAY_MINVALUES ) {
 		return ILLUMINATIR_ERROR_INVALID_SIZE;
 	}
-	if( values_size > ILLUMINATIR_OFFSETARRAY_MAX_VALUES ) {
+	if( values_size > ILLUMINATIR_OFFSETARRAY_MAXVALUES ) {
 		return ILLUMINATIR_ERROR_INVALID_SIZE;
 	}
 	uint8_t packet_size_available = *packet_size;

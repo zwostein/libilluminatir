@@ -62,7 +62,7 @@ size_t illuminatir_cobs_decode( uint8_t * dst, size_t dst_size, const uint8_t * 
 
 illuminatir_error_t illuminatir_cobs_parse( const uint8_t * cobsPacket, uint8_t cobsPacket_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc )
 {
-	uint8_t packet[ILLUMINATIR_MAX_PACKET_SIZE];
+	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE];
 	size_t res = illuminatir_cobs_decode( packet, sizeof(packet), cobsPacket, cobsPacket_size );
 	if( res == 0 ) {
 		return ILLUMINATIR_ERROR_UNKNOWN;
@@ -76,7 +76,7 @@ illuminatir_error_t illuminatir_cobs_build_offsetArray( uint8_t * cobsPacket, ui
 	if( !cobsPacket_size ) {
 		return ILLUMINATIR_ERROR_NULL_POINTER;
 	}
-	uint8_t packet[ILLUMINATIR_MAX_PACKET_SIZE] = { 0 };
+	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE] = { 0 };
 	uint8_t packet_size = sizeof(packet);
 	illuminatir_error_t err = illuminatir_build_offsetArray( packet, &packet_size, offset, values, values_size );
 	if( err != ILLUMINATIR_ERROR_NONE ) {
@@ -95,7 +95,7 @@ illuminatir_error_t illuminatir_cobs_build_config( uint8_t * cobsPacket, uint8_t
 	if( !cobsPacket_size ) {
 		return ILLUMINATIR_ERROR_NULL_POINTER;
 	}
-	uint8_t packet[ILLUMINATIR_MAX_PACKET_SIZE] = { 0 };
+	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE] = { 0 };
 	uint8_t packet_size = sizeof(packet);
 	illuminatir_error_t err = illuminatir_build_config( packet, &packet_size, key, key_len, values, values_size );
 	if( err != ILLUMINATIR_ERROR_NONE ) {

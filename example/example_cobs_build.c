@@ -4,7 +4,7 @@
 
 int main( void )
 {
-	uint8_t cobsPacket[ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_MAX_PACKET_SIZE)];
+	uint8_t cobsPacket[ILLUMINATIR_COBS_PACKET_MAXSIZE];
 	uint8_t cobsPacket_size = sizeof(cobsPacket);
 	uint8_t values[] = {11,22,33,44,55,66,77,88};
 	

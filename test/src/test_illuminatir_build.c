@@ -16,7 +16,7 @@ void tearDown(void) {
 
 void test_illuminatir_build_offsetArray( void )
 {
-	uint8_t packet[ILLUMINATIR_MAX_PACKET_SIZE];
+	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE];
 	uint8_t values[] = {42};
 	uint8_t packet_size = sizeof(packet);
 	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_build_offsetArray( packet, &packet_size, 0, values, sizeof(values) ) );
@@ -30,7 +30,7 @@ void test_illuminatir_build_offsetArray( void )
 
 void test_illuminatir_build_config( void )
 {
-	uint8_t packet[ILLUMINATIR_MAX_PACKET_SIZE];
+	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE];
 	const char key[] = "Test";
 	uint8_t values[] = {1,2,3};
 	uint8_t packet_size = sizeof(packet);

@@ -176,15 +176,20 @@
  * @{
  */
 
-#define ILLUMINATIR_MIN_PACKET_SIZE 4  ///< Minimum size of raw packets.
-#define ILLUMINATIR_MAX_PACKET_SIZE 19 ///< Maximum size of raw packets.
+#define ILLUMINATIR_PACKET_MINSIZE 4  ///< Minimum size of raw packets. (header + 2 payload bytes + crc)
+#define ILLUMINATIR_PACKET_MAXSIZE 19 ///< Maximum size of raw packets. (header + 17 payload bytes + crc)
 
-#define ILLUMINATIR_OFFSETARRAY_MIN_VALUES 1  ///< Minimum number of channels in an OffsetArray type packet.
-#define ILLUMINATIR_OFFSETARRAY_MAX_VALUES 16 ///< Maximum number of channels in an OffsetArray type packet.
+#define ILLUMINATIR_OFFSETARRAY_MINVALUES 1  ///< Minimum number of channels in an OffsetArray type packet. (offset + 1 channel value)
+#define ILLUMINATIR_OFFSETARRAY_MAXVALUES 16 ///< Maximum number of channels in an OffsetArray type packet. (offset + 16 channel values)
+
+#define ILLUMINATIR_CONFIG_KEY_MINLEN     0  ///< Minimum number of key characters in a Config type packet. (2 value bytes)
+#define ILLUMINATIR_CONFIG_KEY_MAXLEN     17 ///< Maximum number of key characters in a Config type packet. (no value bytes, no delimiter)
+#define ILLUMINATIR_CONFIG_VALUES_MINSIZE 0  ///< Minimum number of value data in a Config type packet. (1 key character + delimiter OR 2 key characters, no delimiter)
+#define ILLUMINATIR_CONFIG_VALUES_MAXSIZE 16 ///< Maximum number of value data in a Config type packet. (delimiter + 16 value bytes)
 
 
 /**
- * \brief Error return types.
+ * \brief Error return codes.
  */
 typedef enum {
 	ILLUMINATIR_ERROR_NONE,                ///< Successful execution of function.
@@ -241,7 +246,7 @@ typedef void (*illuminatir_parse_setConfig_t)( const char * key, uint8_t key_len
 illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc );
 
 /**
- * \brief Builds a packet of payload type OffsetArray.
+ * \brief Builds an OffsetArray packet.
  *
  * \param packet      Pointer to a buffer.
  * \param packet_size Size of \p packet buffer in bytes.
@@ -252,7 +257,7 @@ illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_si
 illuminatir_error_t illuminatir_build_offsetArray( uint8_t * packet, uint8_t * packet_size, uint8_t offset, const uint8_t * values, uint8_t values_size );
 
 /**
- * \brief Builds a packet of payload type Config.
+ * \brief Builds a Config packet.
  *
  * \param packet      Pointer to a buffer.
  * \param packet_size Size of \p packet buffer in bytes.
@@ -302,15 +307,17 @@ uint8_t illuminatir_crc8( const uint8_t * data, size_t data_size, uint8_t crc );
  * @{
  */
 
-#define ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(SRC_SIZE) ((SRC_SIZE)+(((SRC_SIZE)+253U)/254U))    ///< The maximum encoded packet size to expect for \p SRC_SIZE of data.
-#define ILLUMINATIR_COBS_DECODE_DST_MAXSIZE(SRC_SIZE) (((SRC_SIZE)==0) ? 0U : ((SRC_SIZE)-1U)) ///< The maximum decoded packet size to expect for \p SRC_SIZE of data.
+#define ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(SRC_SIZE) ((SRC_SIZE)+(((SRC_SIZE)+253U)/254U))    ///< The maximum encoded data size to expect for \p SRC_SIZE of decoded data.
+#define ILLUMINATIR_COBS_DECODE_DST_MAXSIZE(SRC_SIZE) (((SRC_SIZE)==0) ? 0U : ((SRC_SIZE)-1U)) ///< The maximum decoded data size to expect for \p SRC_SIZE of encoded data.
+#define ILLUMINATIR_COBS_PACKET_MINSIZE ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_PACKET_MINSIZE) ///< Minimum size of COBS encoded packets.
+#define ILLUMINATIR_COBS_PACKET_MAXSIZE ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(ILLUMINATIR_PACKET_MAXSIZE) ///< Maximum size of COBS encoded packets.
 
 /**
  * \brief COBS encode.
  * 
  * Encodes \p src using COBS.
  * \note For general use cases you would not need this function. It is however exported in case you want to encode other data as well.
- * \param dst      Pointer to destination buffer.
+ * \param dst      Pointer to destination buffer. Should be at least \ref ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(src_size) bytes in size.
  * \param dst_size Size of destination buffer.
  * \param src      Pointer to source buffer.
  * \param src_size Size of source buffer.
@@ -323,7 +330,7 @@ size_t illuminatir_cobs_encode( uint8_t * dst, size_t dst_size, const uint8_t * 
  * 
  * Decodes \p src using COBS.
  * \note For general use cases you would not need this function. It is however exported in case you want to decode other data as well.
- * \param dst      Pointer to destination buffer.
+ * \param dst      Pointer to destination buffer. Should be at least \ref ILLUMINATIR_COBS_DECODE_DST_MAXSIZE(src_size) bytes in size.
  * \param dst_size Size of destination buffer.
  * \param src      Pointer to source buffer.
  * \param src_size Size of source buffer.
