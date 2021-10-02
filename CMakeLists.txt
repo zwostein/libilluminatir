@@ -14,11 +14,6 @@ if(CODE_COVERAGE)
 	)
 endif()
 
-find_package(Doxygen
-	REQUIRED dot
-	OPTIONAL_COMPONENTS mscgen dia
-)
-
 set(CMAKE_C_STANDARD 11)
 
 add_compile_options(
@@ -41,6 +36,11 @@ add_library( ${PROJECT_NAME} ${SOURCES} )
 
 option(DOCUMENTATION "Enable generation of documentation" OFF)
 if(DOCUMENTATION)
+	find_package(Doxygen
+		REQUIRED dot
+		OPTIONAL_COMPONENTS mscgen dia
+	)
+
 	set(DOXYGEN_PROJECT_NAME libIlluminatIR)
 	set(DOXYGEN_PROJECT_BRIEF "A generic library implementing the IlluminatIR protocol.")
 	set(DOXYGEN_EXAMPLE_PATH "example")
