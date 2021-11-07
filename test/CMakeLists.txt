@@ -1,6 +1,8 @@
 add_subdirectory(ext/Unity)
 
 set(TEST_SOURCES
+	src/test_illuminatir_lfsr.c
+	src/test_illuminatir_rand.c
 	src/test_illuminatir_cobs.c
 	src/test_illuminatir_parse.c
 	src/test_illuminatir_build.c

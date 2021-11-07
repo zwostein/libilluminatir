@@ -60,14 +60,14 @@ size_t illuminatir_cobs_decode( uint8_t * dst, size_t dst_size, const uint8_t * 
 }
 
 
-illuminatir_error_t illuminatir_cobs_parse( const uint8_t * cobsPacket, uint8_t cobsPacket_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc )
+illuminatir_error_t illuminatir_cobs_parse( const uint8_t * cobsPackets, uint8_t cobsPackets_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc )
 {
-	uint8_t packet[ILLUMINATIR_PACKET_MAXSIZE];
-	size_t res = illuminatir_cobs_decode( packet, sizeof(packet), cobsPacket, cobsPacket_size );
-	if( res == 0 ) {
-		return ILLUMINATIR_ERROR_UNKNOWN;
+	uint8_t packets[ILLUMINATIR_PACKET_MAXSIZE];  // TODO: maybe use a larger buffer for multiple packets
+	size_t packets_size = illuminatir_cobs_decode( packets, sizeof(packets), cobsPackets, cobsPackets_size );
+	if( packets_size == 0 ) {
+		return ILLUMINATIR_ERROR_INVALID_SIZE;
 	}
-	return illuminatir_parse( packet, res, setChannelFunc, setConfigFunc );
+	return illuminatir_parse( packets, packets_size, setChannelFunc, setConfigFunc );
 }
 
 
@@ -84,7 +84,7 @@ illuminatir_error_t illuminatir_cobs_build_offsetArray( uint8_t * cobsPacket, ui
 	}
 	*cobsPacket_size = illuminatir_cobs_encode( cobsPacket, *cobsPacket_size, packet, packet_size );
 	if( *cobsPacket_size == 0 ) {
-		return ILLUMINATIR_ERROR_UNKNOWN;
+		return ILLUMINATIR_ERROR_INVALID_SIZE;
 	}
 	return ILLUMINATIR_ERROR_NONE;
 }
@@ -103,7 +103,7 @@ illuminatir_error_t illuminatir_cobs_build_config( uint8_t * cobsPacket, uint8_t
 	}
 	*cobsPacket_size = illuminatir_cobs_encode( cobsPacket, *cobsPacket_size, packet, packet_size );
 	if( *cobsPacket_size == 0 ) {
-		return ILLUMINATIR_ERROR_UNKNOWN;
+		return ILLUMINATIR_ERROR_INVALID_SIZE;
 	}
 	return ILLUMINATIR_ERROR_NONE;
 }

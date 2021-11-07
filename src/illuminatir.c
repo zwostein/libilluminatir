@@ -46,84 +46,84 @@ const char * illuminatir_error_toString( illuminatir_error_t err )
 }
 
 
-illuminatir_error_t illuminatir_parse( const uint8_t * packet, uint8_t packet_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc )
+illuminatir_error_t illuminatir_parse( const uint8_t * packets, uint8_t packets_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc )
 {
-	if( !packet ) {
+	if( !packets ) {
 		return ILLUMINATIR_ERROR_NULL_POINTER;
 	}
-	if( packet_size < ILLUMINATIR_PACKET_MINSIZE ) {
-		return ILLUMINATIR_ERROR_PACKET_TOO_SHORT;
-	}
-	/*
-	if( packet_size > ILLUMINATIR_MAX_PACKET_SIZE ) {
-		return ILLUMINATIR_ERROR_PACKET_TOO_LONG;
-	}
-	*/
-	uint8_t version = packet[0] >> 6;
-	if( version != 0 ) {
-		return ILLUMINATIR_ERROR_UNSUPPORTED_VERSION;
-	}
-	uint8_t format = (packet[0] & 0b00110000) >> 4;
-	uint8_t payload_size = (packet[0] & 0b00001111) + 2;
-	if( 1 + payload_size + 1 != packet_size ) {
-		return ILLUMINATIR_ERROR_INVALID_SIZE;
-	}
-	const uint8_t * payload = packet + 1;
-	uint8_t crc_received = packet[packet_size - 1];
-	uint8_t crc_calculated = illuminatir_crc8( packet, packet_size - 1, ILLUMINATIR_CRC8_INITIAL_SEED );
-	if( crc_received != crc_calculated ) {
-		return ILLUMINATIR_ERROR_INVALID_CRC;
-	}
-	
-	switch( format ) {
-		case 0: { // OffsetArray - offset + values
-			if( !setChannelFunc ) {
-				return ILLUMINATIR_ERROR_NONE;
-			}
-			uint8_t offset = *payload++;
-			for( uint8_t i = 0; i < payload_size - 1; i++ ) {
-				uint8_t channel = i+offset;
-				setChannelFunc( channel, *payload++ );
-			}
-			return ILLUMINATIR_ERROR_NONE;
+	while( packets_size ) {
+		if( packets_size < ILLUMINATIR_PACKET_MINSIZE ) {
+			return ILLUMINATIR_ERROR_PACKET_TOO_SHORT;
 		}
-		case 1: { // ChannelValuePairs
-			if( !setChannelFunc ) {
-				return ILLUMINATIR_ERROR_NONE;
-			}
-			uint8_t pairs = payload_size / 2;
-			uint8_t halfpair = payload_size % 2;
-			while( pairs ) {
-				uint8_t channel = *payload++;
-				uint8_t value = *payload++;
-				setChannelFunc( channel, value );
-				pairs--;
-			}
-			if( halfpair ) {
-				uint8_t channel = *payload++;
-				setChannelFunc( channel, 0 );
-			}
-			return ILLUMINATIR_ERROR_NONE;
+		uint8_t version = packets[0] >> 6;
+		if( version != 0 ) {
+			return ILLUMINATIR_ERROR_UNSUPPORTED_VERSION;
 		}
-		case 2: { // Config - key/value pair
-			if( !setConfigFunc ) {
-				return ILLUMINATIR_ERROR_NONE;
-			}
-			const char * key = (const char *)payload;
-			uint8_t key_len = strnlen( key, payload_size );
-			uint8_t values_size = payload_size - key_len;
-			if( values_size > 0 ) {
-				values_size--;
-			}
-			const uint8_t * values = payload + payload_size - values_size;
-			setConfigFunc( key, key_len, values, values_size );
-			return ILLUMINATIR_ERROR_NONE;
+		uint8_t format = (packets[0] & 0b00110000) >> 4;
+		uint8_t payload_size = (packets[0] & 0b00001111) + 2;
+		uint8_t packet_size = 1 + payload_size + 1;
+		if( packet_size > packets_size ) {
+			return ILLUMINATIR_ERROR_INVALID_SIZE;
 		}
-		default: {
-			return ILLUMINATIR_ERROR_UNSUPPORTED_FORMAT;
+		const uint8_t * payload = packets + 1;
+		uint8_t crc_received = packets[packet_size - 1];
+		uint8_t crc_calculated = illuminatir_crc8( packets, packet_size - 1, ILLUMINATIR_CRC8_INITIAL_SEED );
+		if( crc_received != crc_calculated ) {
+			return ILLUMINATIR_ERROR_INVALID_CRC;
 		}
+		
+		switch( format ) {
+			case 0: { // OffsetArray - offset + values
+				if( !setChannelFunc ) {
+					break;
+				}
+				uint8_t offset = *payload++;
+				for( uint8_t i = 0; i < payload_size - 1; i++ ) {
+					uint8_t channel = i+offset;
+					setChannelFunc( channel, *payload++ );
+				}
+				break;
+			}
+			case 1: { // ChannelValuePairs
+				if( !setChannelFunc ) {
+					break;
+				}
+				uint8_t pairs = payload_size / 2;
+				uint8_t halfpair = payload_size % 2;
+				while( pairs ) {
+					uint8_t channel = *payload++;
+					uint8_t value = *payload++;
+					setChannelFunc( channel, value );
+					pairs--;
+				}
+				if( halfpair ) {
+					uint8_t channel = *payload++;
+					setChannelFunc( channel, 0 );
+				}
+				break;
+			}
+			case 2: { // Config - key/value pair
+				if( !setConfigFunc ) {
+					break;
+				}
+				const char * key = (const char *)payload;
+				uint8_t key_len = strnlen( key, payload_size );
+				uint8_t values_size = payload_size - key_len;
+				if( values_size > 0 ) {
+					values_size--;
+				}
+				const uint8_t * values = payload + payload_size - values_size;
+				setConfigFunc( key, key_len, values, values_size );
+				break;
+			}
+			default: {
+				return ILLUMINATIR_ERROR_UNSUPPORTED_FORMAT;
+			}
+		}
+		packets += packet_size;
+		packets_size -= packet_size;
 	}
-	return ILLUMINATIR_ERROR_UNKNOWN;
+	return ILLUMINATIR_ERROR_NONE;
 }
 
 

@@ -29,6 +29,8 @@ set(SOURCES
 	${PROJECT_SOURCE_DIR}/src/illuminatir.c
 	${PROJECT_SOURCE_DIR}/src/crc8.c
 	${PROJECT_SOURCE_DIR}/src/cobs.c
+	${PROJECT_SOURCE_DIR}/src/lfsr.c
+	${PROJECT_SOURCE_DIR}/src/rand.c
 )
 
 add_library( ${PROJECT_NAME} ${SOURCES} )

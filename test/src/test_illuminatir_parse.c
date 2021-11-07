@@ -228,6 +228,22 @@ void test_illuminatir_parse_config_noKeyDelimiter_maximumSize( void )
 }
 
 
+void test_illuminatir_parse_offsetArray_offset_multiple( void )
+{
+	uint8_t packets[] = {0x00,0x03,42,0x00,0x00,0x04,21,0x00};
+	uint8_t * packet1 = packets;
+	size_t packet1_size = 4;
+	uint8_t * packet2 = packets + packet1_size;
+	size_t packet2_size = 4;
+	packet1[packet1_size-1] = illuminatir_crc8( packet1, packet1_size-1, ILLUMINATIR_CRC8_INITIAL_SEED );
+	packet2[packet2_size-1] = illuminatir_crc8( packet2, packet2_size-1, ILLUMINATIR_CRC8_INITIAL_SEED );
+	TEST_ASSERT_ILLUMINATIR_ERROR( ILLUMINATIR_ERROR_NONE, illuminatir_parse( packets, sizeof(packets), setChannel, setConfig ) );
+	TEST_ASSERT_EQUAL_UINT( 2, setChannel_called );
+	TEST_ASSERT_EQUAL_UINT8( 42, channels[3] );
+	TEST_ASSERT_EQUAL_UINT8( 21, channels[4] );
+}
+
+
 int main( void )
 {
 	UNITY_BEGIN();
@@ -243,5 +259,6 @@ int main( void )
 	RUN_TEST(test_illuminatir_parse_config_noKey_minimumSize);
 	RUN_TEST(test_illuminatir_parse_config_maximumSize);
 	RUN_TEST(test_illuminatir_parse_config_noKeyDelimiter_maximumSize);
+	RUN_TEST(test_illuminatir_parse_offsetArray_offset_multiple);
 	return UNITY_END();
 }

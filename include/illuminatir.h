@@ -51,6 +51,9 @@
  * For use over unreliable interfaces (like serial infrared transmitter/receiver) the packets shall be encoded using [Consistent Overhead Byte Stuffing] (https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
  * The \ref COBS module provides functions for handling COBS packets.
  *
+ * You also might want to use packets that have roughly equal amounts of 1's and 0's in order to please the IR receiver's filter circuitry.
+ * For this the \ref Rand module provides packet randomization functionality.
+ *
  *
  * \subsection libilluminatir_header_sec Header (1 byte):
  * \code{.unparsed}
@@ -266,7 +269,29 @@ illuminatir_error_t illuminatir_build_offsetArray( uint8_t * packet, uint8_t * p
  * \param values      The key's value(s).
  * \param values_size Size of \p values in bytes.
  */
-illuminatir_error_t illuminatir_build_config     ( uint8_t * packet, uint8_t * packet_size, const char * key, uint8_t key_len, const uint8_t * values, uint8_t values_size );
+illuminatir_error_t illuminatir_build_config( uint8_t * packet, uint8_t * packet_size, const char * key, uint8_t key_len, const uint8_t * values, uint8_t values_size );
+
+/**
+ * \brief Get the size of a packet's payload according to its header.
+ *
+ * \param header A packet's first byte.
+ * \returns The size of the packet's payload according to its header.
+ */
+static inline uint8_t illuminatir_header_getPayloadSize( uint8_t header )
+{
+	return (header & 0b00001111) + 2;
+}
+
+/**
+ * \brief Get the size of a packet according to its header.
+ *
+ * \param header A packet's first byte.
+ * \returns The size of the packet according to its header.
+ */
+static inline uint8_t illuminatir_header_getPacketSize( uint8_t header )
+{
+	return 1 + illuminatir_header_getPayloadSize( header ) + 1;
+}
 
 /**
  * @}
@@ -314,9 +339,8 @@ uint8_t illuminatir_crc8( const uint8_t * data, size_t data_size, uint8_t crc );
 
 /**
  * \brief COBS encode.
- * 
+ *
  * Encodes \p src using COBS.
- * \note For general use cases you would not need this function. It is however exported in case you want to encode other data as well.
  * \param dst      Pointer to destination buffer. Should be at least \ref ILLUMINATIR_COBS_ENCODE_DST_MAXSIZE(src_size) bytes in size.
  * \param dst_size Size of destination buffer.
  * \param src      Pointer to source buffer.
@@ -327,9 +351,8 @@ size_t illuminatir_cobs_encode( uint8_t * dst, size_t dst_size, const uint8_t * 
 
 /**
  * \brief COBS decode.
- * 
+ *
  * Decodes \p src using COBS.
- * \note For general use cases you would not need this function. It is however exported in case you want to decode other data as well.
  * \param dst      Pointer to destination buffer. Should be at least \ref ILLUMINATIR_COBS_DECODE_DST_MAXSIZE(src_size) bytes in size.
  * \param dst_size Size of destination buffer.
  * \param src      Pointer to source buffer.
@@ -338,9 +361,121 @@ size_t illuminatir_cobs_encode( uint8_t * dst, size_t dst_size, const uint8_t * 
  */
 size_t illuminatir_cobs_decode( uint8_t * dst, size_t dst_size, const uint8_t * src, size_t src_size );
 
-illuminatir_error_t illuminatir_cobs_parse( const uint8_t * cobsPacket, uint8_t cobsPacket_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc ); ///< A version of \ref illuminatir_parse for COBS encoded packets.
-illuminatir_error_t illuminatir_cobs_build_offsetArray( uint8_t * cobsPacket, uint8_t * cobsPacket_size, uint8_t offset, const uint8_t * values, uint8_t values_size );                        ///< A version of \ref illuminatir_build_offsetArray building COBS encoded packets.
-illuminatir_error_t illuminatir_cobs_build_config     ( uint8_t * cobsPacket, uint8_t * cobsPacket_size, const char * key, uint8_t key_len, const uint8_t * values, uint8_t values_size );     ///< A version of \ref illuminatir_build_config building COBS encoded packets.
+illuminatir_error_t illuminatir_cobs_parse( const uint8_t * cobsPackets, uint8_t cobsPacket_sizes, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc ); ///< A version of \ref illuminatir_parse for COBS encoded packets.
+
+/**
+ * \brief A version of \ref illuminatir_build_offsetArray building a COBS encoded packet.
+ *
+ * \note In contrast to \ref illuminatir_build_offsetArray, COBS encoded packets cannot be concatenated. Instead you have to concatenate them in advance and use \ref illuminatir_cobs_encode to encode them at once.
+ *
+ * \param cobsPacket      Pointer to a buffer.
+ * \param cobsPacket_size Size of \p cobsPacket buffer in bytes.
+ * \param offset          The channel number of the first element in \p values.
+ * \param values          Pointer an array of values.
+ * \param values_size     Size of \p values in bytes.
+ */
+illuminatir_error_t illuminatir_cobs_build_offsetArray( uint8_t * cobsPacket, uint8_t * cobsPacket_size, uint8_t offset, const uint8_t * values, uint8_t values_size );
+
+/**
+ * \brief A version of \ref illuminatir_build_config building a COBS encoded packet.
+ *
+ * \note In contrast to \ref illuminatir_build_config, COBS encoded packets cannot be concatenated. Instead you have to concatenate them in advance and use \ref illuminatir_cobs_encode to encode them at once.
+ *
+ * \param cobsPacket      Pointer to a buffer.
+ * \param cobsPacket_size Size of \p cobsPacket buffer in bytes.
+ * \param key             Key string.
+ * \param key_len         The length of \p key in characters (NULL character excluded).
+ * \param values          The key's value(s).
+ * \param values_size     Size of \p values in bytes.
+ */
+illuminatir_error_t illuminatir_cobs_build_config( uint8_t * cobsPacket, uint8_t * cobsPacket_size, const char * key, uint8_t key_len, const uint8_t * values, uint8_t values_size );
+
+/**
+ * @}
+ */
+
+
+/**
+ * @defgroup LFSR LFSR
+ * \brief Linear feedback shift register.
+ *
+ * Provides a linear feedback shift register for use in pseudo random number generation.
+ * \note For general use cases you would not need these functions. It is however exported in case you need a known sequence of pseudo random numbers.
+ * @{
+ */
+
+/**
+ * \brief Initializes the LFSR for \ref illuminatir_lfsr127_uint8.
+ *
+ * Sets the initial state of the LFSR to a specific seed.
+ * The default seed is 1.
+ * A seed of 0 is actually an invalid initial state but is accepted nonetheless and equivalent to 1 for convenience.
+ *
+ * \param seed 7 bit initial seed.
+ */
+void illuminatir_lfsr127_init( uint8_t seed );
+
+/**
+ * \brief Generate 8 random bits.
+ *
+ * This linear feedback shift register uses the polynomial x^7 + x^6 + 1, resulting in a minimum period of 127 until repetition.
+ * \see https://en.wikipedia.org/wiki/Linear-feedback_shift_register
+ *
+ * \return random number
+ */
+uint8_t illuminatir_lfsr127_uint8( void );
+/**
+ * @}
+ */
+
+
+/**
+ * @defgroup Rand Rand
+ * \brief Packet randomization.
+ *
+ * Parse and build randomized packets with roughly even distribution of ones and zeros.
+ * All bytes except header and CRC are randomized via \ref LFSR using the CRC as the seed value.
+ * @{
+ */
+
+/**
+ * \brief Randomizes one or more packets.
+ *
+ * The last packet's CRC is used as seed for the pseudo random number generator.
+ *
+ * \param packets Pointer to a buffer.
+ * \param size    Size of \p cobsPacket buffer in bytes.
+ */
+void illuminatir_rand( uint8_t * packets, size_t size );
+
+illuminatir_error_t illuminatir_rand_cobs_parse( const uint8_t * cobsPackets, uint8_t cobsPackets_size, illuminatir_parse_setChannel_t setChannelFunc, illuminatir_parse_setConfig_t setConfigFunc ); ///< A version of \ref illuminatir_parse for COBS encoded randomized packets.
+
+/**
+ * \brief A version of \ref illuminatir_build_offsetArray building a COBS encoded randomized packet.
+ *
+ * \note In contrast to \ref illuminatir_build_offsetArray, COBS encoded randomized packets cannot be concatenated. Instead you have to concatenate them in advance and use \ref illuminatir_rand then \ref illuminatir_cobs_encode to encode them at once.
+ *
+ * \param randCobsPacket      Pointer to a buffer.
+ * \param randCobsPacket_size Size of \p cobsPacket buffer in bytes.
+ * \param offset              The channel number of the first element in \p values.
+ * \param values              Pointer an array of values.
+ * \param values_size         Size of \p values in bytes.
+ */
+illuminatir_error_t illuminatir_rand_cobs_build_offsetArray( uint8_t * randCobsPacket, uint8_t * randCobsPacket_size, uint8_t offset, const uint8_t * values, uint8_t values_size );
+
+/**
+ * \brief A version of \ref illuminatir_build_config building a COBS encoded randomized packet.
+ *
+ * \note In contrast to \ref illuminatir_build_config, COBS encoded randomized packets cannot be concatenated. Instead you have to concatenate them in advance and use \ref illuminatir_rand then \ref illuminatir_cobs_encode to encode them at once.
+ *
+ * \param randCobsPacket      Pointer to a buffer.
+ * \param randCobsPacket_size Size of \p cobsPacket buffer in bytes.
+ * \param key                 Key string.
+ * \param key_len             The length of \p key in characters (NULL character excluded).
+ * \param values              The key's value(s).
+ * \param values_size         Size of \p values in bytes.
+ */
+illuminatir_error_t illuminatir_rand_cobs_build_config( uint8_t * randCobsPacket, uint8_t * randCobsPacket_size, const char * key, uint8_t key_len, const uint8_t * values, uint8_t values_size );
 
 /**
  * @}
